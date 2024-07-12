@@ -48,15 +48,15 @@ class CacheAttnProcessor:
         if attn.group_norm is not None:
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         query = attn.head_to_batch_dim(query)
         key = attn.head_to_batch_dim(key)
@@ -67,7 +67,7 @@ class CacheAttnProcessor:
         hidden_states = attn.batch_to_head_dim(hidden_states)
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -129,15 +129,15 @@ class CacheAttnProcessor2_0:
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
         args = () if USE_PEFT_BACKEND else (scale,)
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
         head_dim = inner_dim // attn.heads
@@ -157,7 +157,7 @@ class CacheAttnProcessor2_0:
         hidden_states = hidden_states.to(query.dtype)
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -222,7 +222,7 @@ class SAttnProcessor2_0(torch.nn.Module):
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
         args = () if USE_PEFT_BACKEND else (scale,)
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             # for reference adapter
@@ -235,8 +235,8 @@ class SAttnProcessor2_0(torch.nn.Module):
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
         head_dim = inner_dim // attn.heads
@@ -256,7 +256,7 @@ class SAttnProcessor2_0(torch.nn.Module):
         hidden_states = hidden_states.to(query.dtype)
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -324,15 +324,15 @@ class CAttnProcessor2_0(torch.nn.Module):
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
         args = () if USE_PEFT_BACKEND else (scale,)
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
         head_dim = inner_dim // attn.heads
@@ -369,7 +369,7 @@ class CAttnProcessor2_0(torch.nn.Module):
         # hidden_states = hidden_states + ip_hidden_states
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -434,7 +434,7 @@ class BaseSAttnProcessor2_0(torch.nn.Module):
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
         args = () if USE_PEFT_BACKEND else (scale,)
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
@@ -442,8 +442,8 @@ class BaseSAttnProcessor2_0(torch.nn.Module):
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
         head_dim = inner_dim // attn.heads
@@ -463,7 +463,7 @@ class BaseSAttnProcessor2_0(torch.nn.Module):
         hidden_states = hidden_states.to(query.dtype)
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -533,7 +533,7 @@ class RefSAttnProcessor2_0(torch.nn.Module):
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
         args = () if USE_PEFT_BACKEND else (scale,)
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
@@ -541,8 +541,8 @@ class RefSAttnProcessor2_0(torch.nn.Module):
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
         head_dim = inner_dim // attn.heads
@@ -580,7 +580,7 @@ class RefSAttnProcessor2_0(torch.nn.Module):
             hidden_states = hidden_states + ref_hidden_states * self.scale
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
@@ -650,15 +650,15 @@ class RefCAttnProcessor2_0(torch.nn.Module):
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
         args = () if USE_PEFT_BACKEND else (scale,)
-        query = attn.to_q(hidden_states, *args)
+        query = attn.to_q(hidden_states)
 
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
         elif attn.norm_cross:
             encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states, *args)
-        value = attn.to_v(encoder_hidden_states, *args)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
         head_dim = inner_dim // attn.heads
@@ -696,7 +696,7 @@ class RefCAttnProcessor2_0(torch.nn.Module):
             hidden_states = hidden_states + ref_hidden_states * self.scale
 
         # linear proj
-        hidden_states = attn.to_out[0](hidden_states, *args)
+        hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
