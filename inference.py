@@ -38,7 +38,7 @@ def prepare(args):
     tokenizer = CLIPTokenizer.from_pretrained("SG161222/Realistic_Vision_V4.0_noVAE", subfolder="tokenizer")
     text_encoder = CLIPTextModel.from_pretrained("SG161222/Realistic_Vision_V4.0_noVAE", subfolder="text_encoder").to(
         dtype=torch.float16, device=args.device)
-    image_encoder = CLIPVisionModelWithProjection.from_pretrained("h94/IP-Adapter").to(
+    image_encoder = CLIPVisionModelWithProjection.from_pretrained("h94/IP-Adapter", subfolder="models/image_encoder").to(
         dtype=torch.float16, device=args.device)
     unet = UNet2DConditionModel.from_pretrained("SG161222/Realistic_Vision_V4.0_noVAE", subfolder="unet").to(
         dtype=torch.float16,
@@ -149,8 +149,8 @@ if __name__ == "__main__":
     parser.add_argument('--cloth_path', type=str, required=True)
     parser.add_argument('--face_path', default=None, type=str)
     parser.add_argument('--pose_path', default=None, type=str)
-    parser.add_argument('--output_path', type=str, default="./output_sd")
-    parser.add_argument('--device', type=str, default="cuda:0")
+    parser.add_argument('--output_path', type=str, default="./output_sd2")
+    parser.add_argument('--device', type=str, default="cuda:1")
     args = parser.parse_args()
 
     # svae path
@@ -174,45 +174,57 @@ if __name__ == "__main__":
     prompt = 'A model wearing a colorful skirt'
     null_prompt = ''
     negative_prompt = 'bare, naked, nude, undressed, monochrome, lowres, bad anatomy, worst quality, low quality'
+    cloth_files = [f for f in os.listdir(args.cloth_path) if os.path.isfile(os.path.join(args.cloth_path, f))]
+    face_files = [f for f in os.listdir(args.face_path) if os.path.isfile(os.path.join(args.face_path, f))]
+    face_files = ['1.jpg']
+    
+    for face_file in face_files:
+        for cloth_file in cloth_files:
+            cloth_path = os.path.join(args.cloth_path, cloth_file)
+            cloth_img = Image.open(cloth_path).convert("RGB")
+            # vae_clothes.shape = (1,3,640, 512)
+            # img_transform(cloth_img).shape = (3, 640, 512)
+            vae_clothes = img_transform(cloth_img).unsqueeze(0)
+            # 这行有什么作用？？？为什么需要CLIPImageProcessor处理
+            # ref_clip_image.shape = (1,3,224,224)
+            ref_clip_image = clip_image_processor(images=cloth_img, return_tensors="pt").pixel_values
 
-    clothes_img = Image.open(args.cloth_path).convert("RGB")
-    vae_clothes = img_transform(clothes_img).unsqueeze(0)
-    ref_clip_image = clip_image_processor(images=clothes_img, return_tensors="pt").pixel_values
+            if face_file is not None:
+                face_path = os.path.join(args.face_path, face_file)
+                face_img = Image.open(face_path).convert("RGB")
+                face_img.resize((256, 256))
+                face_clip_image = clip_image_processor(images=face_img, return_tensors="pt").pixel_values
+            else:
+                face_clip_image = None
 
-    if args.face_path is not None:
-        face_img = Image.open(args.face_path).convert("RGB")
-        face_img.resize((256, 256))
-        face_clip_image = clip_image_processor(images=face_img, return_tensors="pt").pixel_values
-    else:
-        face_clip_image = None
+            if args.pose_path is not None:
+                pose_image = None
+                # pose_image = diffusers.utils.load_image(args.pose_path)
+            else:
+                pose_image = None
 
-    if args.pose_path is not None:
-        pose_image = diffusers.utils.load_image(args.pose_path)
-    else:
-        pose_image = None
+            output = pipe(
+                ref_image=vae_clothes,
+                prompt=prompt,
+                ref_clip_image=ref_clip_image,
+                pose_image=pose_image,
+                face_clip_image=face_clip_image,
+                null_prompt=null_prompt,
+                negative_prompt=negative_prompt,
+                width=512,
+                height=640,
+                num_images_per_prompt=num_samples,
+                guidance_scale=7.5,
+                image_scale=1.0,
+                ipa_scale=1.2,
+                generator=generator,
+                num_inference_steps=30,
+            ).images
 
-    output = pipe(
-        ref_image=vae_clothes,
-        prompt=prompt,
-        ref_clip_image=ref_clip_image,
-        pose_image=pose_image,
-        face_clip_image=face_clip_image,
-        null_prompt=null_prompt,
-        negative_prompt=negative_prompt,
-        width=512,
-        height=640,
-        num_images_per_prompt=num_samples,
-        guidance_scale=7.5,
-        image_scale=1.0,
-        ipa_scale=1.2,
-        generator=generator,
-        num_inference_steps=30,
-    ).images
+            save_output = []
+            save_output.append(output[0])
+            save_output.insert(0, cloth_img.resize((512, 640), Image.BILINEAR))
 
-    save_output = []
-    save_output.append(output[0])
-    save_output.insert(0, clothes_img.resize((512, 640), Image.BICUBIC))
-
-    grid = image_grid(save_output, 1, 2)
-    grid.save(
-        output_path + '/' + args.clothes_path.split("/")[-1])
+            grid = image_grid(save_output, 1, 2)
+            output_filename = f"{os.path.splitext(face_file)[0]}_{os.path.splitext(cloth_file)[0]}.png"
+            grid.save(os.path.join(output_path, output_filename))
